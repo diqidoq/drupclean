@@ -1,27 +1,131 @@
 #!/bin/bash
+# drupclean - Small drupal utility wrapper script to clear out Drupal 7 database
 
-drupclean() {
-  read -p "Ok I found out we are n a Drupal root. Are you sure you want to wipe all cache tables in database?" YN
-  if [ "$YN" == "y" ]] ; then
-    echo "SHOW TABLES LIKE 'cache%'" | $(drush sql-connect) | tail -n +2 | xargs -L1 -I% echo "TRUNCATE TABLE %;" | $(drush sql-connect) -v
+# (c) 2016, author: Digidog (aka. diqidoq) in courtesy of MAROQQO digital media
+# This program is free software released under the GPL v3 License
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+APP="drupclean"
+DESCR="Small drupal utility wrapper script to clear out Drupal 7 database"
+# CONFIG="config.cfg"
+OS=$(uname -s)
+DSTAMP="$(date +%y%m%d_%H%M%S)"
+# CONFIG_DIR="$HOME/.config/$APP"
+# CONFIG_FILE_PATH="$CONFIG_DIR/$CONFIG"
+# SOURCE=""
+# TARGET=""
+
+function Help(){
+cat << EOF
+
+$APP - $DESCR
+-----------------------------------------------
+(c) 2016, author: Digidog (aka. diqidoq) in courtesy of MAROQQO digital media
+This program is free software released under the GPL v3 License
+
+Files:
+~/share/$APP/$APP
+~/share/$APP/README.md
+~/share/$APP/LICENSE
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+HELP
+----
+
+Commands
+--------
+
+$APP -c           checks if Drupal project root and asks to wipe cache tables.
+$APP -h | --help  prints help
+$APP -off         turns off caching in Drupal
+$APP -cc          checks if Drupal project root and asks to wipe all tmp tables.
+
+EOF
+}
+
+
+clean_tables() {
+  read -p "Ok I found out we are n a Drupal root. Are you sure you want to wipe all $1 tables in database? (y/n): " YN
+  if [[ "$YN" == "y" ]] ; then
+    echo "SHOW TABLES LIKE '$1'" | $(drush sql-connect) | tail -n +2 | xargs -L1 -I% echo "TRUNCATE TABLE %;" | $(drush sql-connect) -v
   else
-    echo "Ok. I broke up and quit."
+    printf "\nOk. I broke up and quit.\n"
     exit 0
   fi
 }
 
-f() {
+# lets check for typical Drupal project files
+find_files_in_path() {
   (
-    while [[ "$PWD" != / ]] ; do 
-      [[ -f "index.php" ]] && [[ "$(cat index.php)" == *"Drupal"* ]] return 0 # && exit 0
-      cd ..
+    while [[ "$PWD" != / ]] ; do
+      if [[ -f "index.php" ]] && [[ -d "sites" ]] && grep -q "Drupal" index.php ; then
+       return 0
+      else
+       cd ..
+      fi
     done
-    return 1
+      return 1
     )
+    
 }
 
-if f ; then 
- drupclean
+run() {
+if find_files_in_path ; then    
+ $1 $2
 else
- echo "Is this a Drupal project directory?"
+ printf "\nStop! Something is wrong here... Is this a Drupal project directory? I'll break up... \n" 
 fi
+}
+
+case "$1" in
+	-h|--help|'')
+		Help
+		exit 1
+	;;
+    '-c')
+        run clean_tables %cache%
+		exit 0
+	;;
+    '-cc')
+    # http://drupal.stackexchange.com/a/171884
+        run clean_tables %cache%
+        run clean_tables search_%
+        run clean_tables watchdog
+        run clean_tables semaphore
+        run clean_tables sessions
+        run clean_tables flood
+        run clean_tables history
+        run clean_tables queue
+		exit 0
+	;;
+	'-off')
+	# http://drupal.stackexchange.com/questions/15265/is-there-a-drush-script-to-disable-all-of-drupal-caches
+        drush vset cache 0
+        drush vset preprocess_css 0
+        drush vset preprocess_js 0
+        drush vset page_cache_maximum_age 0
+        drush vset views_skip_cache TRUE
+        drush dis advagg -y
+		exit 0
+	;;
+       *)
+		Help
+		exit 1
+	;;
+esac
+
+exit 0
+
