@@ -1,0 +1,20 @@
+
+drupclean () {
+echo "SHOW TABLES LIKE 'cache%'" | $(drush sql-connect) | tail -n +2 | xargs -L1 -I% echo "TRUNCATE TABLE %;" | $(drush sql-connect) -v
+}
+
+f () {
+  (
+    while [[ "$PWD" != / ]] ; do 
+      [[ -f "index.php" ]] && [[ "${cat index.php}" == *"Drupal"* ]] return 0 # && exit 0
+      cd ..
+    done
+    return 1
+    )
+}
+
+ if f ; then 
+   drupclean
+   else
+   echo "Is this a Drupal project directory?"
+ fi

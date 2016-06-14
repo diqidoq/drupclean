@@ -1,7 +1,0 @@
-#!bash
-if [[ "${PWD}" == *"www"* ]] && { [[ "${PWD}" == *"sites"* ]] || [[ "${ls}" == *"sites/default/settings.php"* ]]
-then
-echo "SHOW TABLES LIKE 'cache%'" | $(drush sql-connect) | tail -n +2 | xargs -L1 -I% echo "TRUNCATE TABLE %;" | $(drush sql-connect) -v
-fi
-
-f () { ( while [[ "$PWD" != / ]] ; do [[ -f "index.php" ]] && return 0; cd ..; done; return 1; ) ; }
