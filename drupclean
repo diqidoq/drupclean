@@ -1,7 +1,7 @@
 #!/bin/bash
 
 drupclean() {
-echo "SHOW TABLES LIKE 'cache%'" | $(drush sql-connect) | tail -n +2 | xargs -L1 -I% echo "TRUNCATE TABLE %;" | $(drush sql-connect) -v
+  echo "SHOW TABLES LIKE 'cache%'" | $(drush sql-connect) | tail -n +2 | xargs -L1 -I% echo "TRUNCATE TABLE %;" | $(drush sql-connect) -v
 }
 
 f() {
