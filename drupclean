@@ -7,6 +7,7 @@ drupclean() {
   else
     echo "Ok. I broke up and quit."
     exit 0
+  fi
 }
 
 f() {
